@@ -1,0 +1,48 @@
+name: Reusable CI Workflow
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        description: "Name of the application"
+        required: true
+        type: string
+      environment:
+        description: "Deployment environment"
+        required: false
+        default: "dev"
+        type: string
+      region:
+        description: "AWS Region for deployment"
+        required: false
+        default: "ap-south-1"
+        type: string
+
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_PASSWORD:
+        required: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print inputs
+        run: |
+          echo "App Name: ${{ inputs.app_name }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Region: ${{ inputs.region }}"
+
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.app_name }}:${{ inputs.environment }}"
+          docker build -t $IMAGE .
+          docker push $IMAGE
